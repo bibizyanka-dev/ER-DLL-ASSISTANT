@@ -1,0 +1,58 @@
+cmake_minimum_required(VERSION 3.20)
+project(EldenRingImGuiTrainer LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Вихідна папка для DLL
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# ====================== ImGui ======================
+file(GLOB IMGUI_SOURCES 
+    "ImGui/*.cpp"
+    "ImGui/*.h"
+)
+
+# ====================== MinHook ======================
+file(GLOB MINHOOK_SOURCES 
+    "MinHook/src/*.c"
+    "MinHook/src/*.h"
+    "MinHook/src/HDE/*.c"
+    "MinHook/src/HDE/*.h"
+)
+
+add_library(MiniEldenTrainer SHARED
+    main.cpp
+    ${IMGUI_SOURCES}
+    ${MINHOOK_SOURCES}
+)
+
+target_include_directories(MiniEldenTrainer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/ImGui
+    ${CMAKE_CURRENT_SOURCE_DIR}/MinHook/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/MinHook/src      # для hde файлів
+    ${CMAKE_CURRENT_SOURCE_DIR}/MinHook/src/HDE
+)
+
+target_link_libraries(MiniEldenTrainer PRIVATE
+    d3d12
+    dxgi
+    d3dcompiler
+)
+
+target_compile_definitions(MiniEldenTrainer PRIVATE
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+)
+
+target_compile_options(MiniEldenTrainer PRIVATE
+    $<$<CONFIG:Release>:/O2 /MT /GS- /W3>
+    $<$<CONFIG:Debug>:/MTd>
+)
+
+# Назва DLL
+set_target_properties(MiniEldenTrainer PROPERTIES
+    OUTPUT_NAME "MiniEldenTrainer"
+    SUFFIX ".dll"
+    PREFIX ""
+)

@@ -2,12 +2,12 @@
 
 #include <windows.h>
 
-#include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_dx12.h"
-#include "ImGui/imgui_impl_win32.h"
-#include "src/core/process.h"
-#include "src/d3d12/d3d12_interface.h"
-#include "src/trainer/player_trainer.h"
+#include "../../ImGui/imgui.h"
+#include "../../ImGui/imgui_impl_dx12.h"
+#include "../../ImGui/imgui_impl_win32.h"
+#include "../../src/core/process.h"
+#include "../../src/D3D12/d3d12_interface.h"
+#include "../../src/trainer/player_trainer.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -130,7 +130,12 @@ void ImGuiOverlay::RenderMenu() {
   if (ImGui::Begin("Elden Ring Mod", &showMenu_, ImGuiWindowFlags_AlwaysAutoResize)) {
     if (ImGui::BeginTabBar("TabBar")) {
       if (ImGui::BeginTabItem("Player")) {
-        PlayerTrainer::Instance().RenderTab();
+        PlayerTrainer::Instance().RenderPlayerTab();
+        ImGui::EndTabItem();
+      }
+
+      if (ImGui::BeginTabItem("Modes")) {
+        PlayerTrainer::Instance().RenderModesTab();
         ImGui::EndTabItem();
       }
       ImGui::EndTabBar();

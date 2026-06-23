@@ -2,10 +2,10 @@
 
 #include <windows.h>
 
-#include "ImGui/imgui.h"
+#include "../../ImGui/imgui.h"
 #include "memory.h"
 #include "player_data.h"
-#include "src/utils/logger.h"
+#include "../../src/utils/logger.h"
 
 PlayerTrainer& PlayerTrainer::Instance() {
   static PlayerTrainer instance;
@@ -66,7 +66,7 @@ void PlayerTrainer::ReadPlayerState() {
   player_.attributes.arcane = *reinterpret_cast<int*>(addresses_.arcane);
 }
 
-void PlayerTrainer::Update(HMODULE moduleBase) {
+void PlayerTrainer::MemoryUpdate(HMODULE moduleBase) {
   if (!moduleBase) {
     Log("[-] eldenring.exe module not found");
     return;
@@ -94,28 +94,33 @@ void PlayerTrainer::ChangeAttributeValue(char symbol, uintptr_t attrAddress) {
   }
 }
 
-void PlayerTrainer::EnableGodMode() {
-  while (godModeRunning_) {
+void PlayerTrainer::PlayerUpdate() {
+  if (player_.infHealth) {
     *reinterpret_cast<int*>(addresses_.health) = player_.maxHealth;
+  }
+  if (player_.infMana) {
     *reinterpret_cast<int*>(addresses_.mana) = player_.maxMana;
+  }
+  if (player_.infStamina) {
     *reinterpret_cast<int*>(addresses_.stamina) = player_.maxStamina;
-    Sleep(100);
   }
 }
 
-void PlayerTrainer::StartGodMode() {
-  godModeRunning_ = true;
-  godModeThread_ = std::thread(&PlayerTrainer::EnableGodMode, this);
-}
-
-void PlayerTrainer::StopGodMode() {
-  godModeRunning_ = false;
-  if (godModeThread_.joinable()) {
-    godModeThread_.join();
+void PlayerTrainer::RenderModesTab() {
+  if (ImGui::Checkbox("God Mode", &player_.godMode)) {
+    player_.infHealth = player_.godMode;
+    player_.infMana = player_.godMode;
+    player_.infStamina = player_.godMode;
   }
+
+  if (ImGui::Checkbox("Infinity Health", &player_.infHealth));
+  
+  if (ImGui::Checkbox("Infinity Mana", &player_.infMana));
+
+  if (ImGui::Checkbox("Infinity Stamina", &player_.infStamina));
 }
 
-void PlayerTrainer::RenderTab() {
+void PlayerTrainer::RenderPlayerTab() {
   ImGui::Text("Lvl: %d", player_.lvl);
   ImGui::Text("Health: %d/%d", player_.health, player_.maxHealth);
   ImGui::Text("Mana: %d/%d", player_.mana, player_.maxMana);
@@ -123,14 +128,6 @@ void PlayerTrainer::RenderTab() {
   ImGui::Text("Runes: %d", player_.runes);
 
   ImGui::Separator();
-
-  if (ImGui::Checkbox("God Mode", &player_.godMode)) {
-    if (player_.godMode) {
-      StartGodMode();
-    } else {
-      StopGodMode();
-    }
-  }
 
   ImGui::InputInt("Add Runes", &runesToAdd_);
 

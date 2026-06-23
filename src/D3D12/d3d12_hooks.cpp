@@ -1,8 +1,8 @@
 #include "d3d12_hooks.h"
 
-#include "src/d3d12/d3d12_interface.h"
-#include "src/d3d12/d3d12_types.h"
-#include "src/imgui/imgui_overlay.h"
+#include "../../src/D3D12/d3d12_interface.h"
+#include "../../src/D3D12/d3d12_types.h"
+#include "../../src/IMGUI/imgui_overlay.h"
 
 HRESULT APIENTRY hkPresent(IDXGISwapChain3* swapChain, UINT syncInterval, UINT flags) {
   auto& overlay = ImGuiOverlay::Instance();

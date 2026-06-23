@@ -3,6 +3,7 @@ project(EldenRingImGuiTrainer LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -20,19 +21,19 @@ file(GLOB MINHOOK_SOURCES
 
 file(GLOB PROJECT_SOURCES
     "main.cpp"
-    "src/d3d12/*.cpp"
-    "src/imgui/*.cpp"
+    "src/D3D12/*.cpp"
+    "src/IMGUI/*.cpp"
     "src/trainer/*.cpp"
     "src/utils/*.cpp"
 )
 
-add_library(MiniEldenTrainer SHARED
+add_library(MiniEldenDllTrainer SHARED
     ${PROJECT_SOURCES}
     ${IMGUI_SOURCES}
     ${MINHOOK_SOURCES}
 )
 
-target_include_directories(MiniEldenTrainer PRIVATE
+target_include_directories(MiniEldenDllTrainer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/ImGui
     ${CMAKE_CURRENT_SOURCE_DIR}/MinHook/include
@@ -40,24 +41,24 @@ target_include_directories(MiniEldenTrainer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/MinHook/src/HDE
 )
 
-target_link_libraries(MiniEldenTrainer PRIVATE
+target_link_libraries(MiniEldenDllTrainer PRIVATE
     d3d12
     dxgi
     d3dcompiler
 )
 
-target_compile_definitions(MiniEldenTrainer PRIVATE
+target_compile_definitions(MiniEldenDllTrainer PRIVATE
     WIN32_LEAN_AND_MEAN
     NOMINMAX
 )
 
-target_compile_options(MiniEldenTrainer PRIVATE
+target_compile_options(MiniEldenDllTrainer PRIVATE
     $<$<CONFIG:Release>:/O2 /MT /GS- /W3>
     $<$<CONFIG:Debug>:/MTd>
 )
 
-set_target_properties(MiniEldenTrainer PROPERTIES
-    OUTPUT_NAME "MiniEldenTrainer"
+set_target_properties(MiniEldenDllTrainer PROPERTIES
+    OUTPUT_NAME "MiniEldenDllTrainer"
     SUFFIX ".dll"
     PREFIX ""
 )

@@ -1,0 +1,14 @@
+CompileFlags:
+  Add:
+    - -std=c++20
+    - -I.
+    - -IImGui
+    - -IMinHook/include
+    - -IMinHook/src
+    - -IMinHook/src/HDE
+    - -Isrc/trainer
+    - -Isrc/D3D12
+    - -Isrc/IMGUI
+    - -DWIN32_LEAN_AND_MEAN
+    - -DNOMINMAX
+  CompilationDatabase: build

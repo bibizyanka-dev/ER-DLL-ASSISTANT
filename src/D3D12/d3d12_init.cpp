@@ -6,7 +6,7 @@
 #include <d3d12.h>
 #include <dxgi1_4.h>
 
-#include "MinHook/include/MinHook.h"
+#include "../../MinHook/include/MinHook.h"
 #include "d3d12_interface.h"
 
 #pragma comment(lib, "d3d12.lib")

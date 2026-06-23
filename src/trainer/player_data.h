@@ -24,6 +24,9 @@ struct Player {
   int maxStamina = 0;
   int runes = 0;
   bool godMode = false;
+  bool infHealth = false;
+  bool infMana = false;
+  bool infStamina = false;
   PlayerAttributes attributes;
 };
 

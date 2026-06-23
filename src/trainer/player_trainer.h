@@ -11,8 +11,10 @@ class PlayerTrainer {
  public:
   static PlayerTrainer& Instance();
 
-  void Update(HMODULE moduleBase);
-  void RenderTab();
+  void MemoryUpdate(HMODULE moduleBase);
+  void RenderPlayerTab();
+  void RenderModesTab();
+  void PlayerUpdate();
 
   Player& GetPlayer() { return player_; }
   const RuntimeAddresses& GetAddresses() const { return addresses_; }
@@ -23,9 +25,6 @@ class PlayerTrainer {
   void ResolveAddresses(HMODULE moduleBase);
   void ReadPlayerState();
   void ChangeAttributeValue(char symbol, uintptr_t attrAddress);
-  void EnableGodMode();
-  void StartGodMode();
-  void StopGodMode();
 
   Player player_;
   RuntimeAddresses addresses_;

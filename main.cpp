@@ -2,9 +2,9 @@
 #include <psapi.h>
 
 #include "src/core/process.h"
-#include "src/d3d12/d3d12_hooks.h"
-#include "src/d3d12/d3d12_init.h"
-#include "src/d3d12/d3d12_types.h"
+#include "src/D3D12/d3d12_hooks.h"
+#include "src/D3D12/d3d12_init.h"
+#include "src/D3D12/d3d12_types.h"
 #include "src/trainer/player_trainer.h"
 #include "src/utils/logger.h"
 
@@ -53,7 +53,10 @@ DWORD WINAPI MainThread(LPVOID lpParameter) {
   HMODULE moduleBase = GetModuleHandleA("eldenring.exe");
   while (true) {
     if (Process::Handle) {
-      PlayerTrainer::Instance().Update(moduleBase);
+      PlayerTrainer::Instance().MemoryUpdate(moduleBase);
+      Log("MemoryUpdate started");
+      PlayerTrainer::Instance().PlayerUpdate();
+      Log("PlayerUpdate started");
     }
     Sleep(100);
   }

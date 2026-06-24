@@ -1,11 +1,23 @@
 #pragma once
-
+#include "../trainer/player_data.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <unordered_map>
+#include <windows.h>
 
 namespace Memory {
 
 bool Read(uintptr_t address, void* buffer, size_t size);
+bool Write(uintptr_t address, const void* buffer, size_t size);
+
+inline bool ReadInt(uintptr_t address, int* out) {
+  return Read(address, out, sizeof(*out));
+}
+
+inline bool WriteInt(uintptr_t address, int value) {
+  return Write(address, &value, sizeof(value));
+}
 
 template <size_t N>
 uintptr_t ResolvePointerChain(uintptr_t base, const uintptr_t (&offsets)[N]) {

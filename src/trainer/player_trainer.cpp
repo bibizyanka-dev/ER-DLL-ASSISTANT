@@ -2,68 +2,112 @@
 
 #include <windows.h>
 
+#include <cstdint>
+
 #include "../../ImGui/imgui.h"
+#include "../../src/utils/logger.h"
+#include "aob_scanner.h"
 #include "memory.h"
 #include "player_data.h"
-#include "../../src/utils/logger.h"
 
 PlayerTrainer& PlayerTrainer::Instance() {
   static PlayerTrainer instance;
   return instance;
 }
 
-void PlayerTrainer::ResolveAddresses(HMODULE moduleBase) {
+bool PlayerTrainer::EnsureAOBBases(HMODULE moduleBase) {
+  if (aobBasesResolved_) {
+    return player_.aobBases.WorldChrMan != 0;
+  }
+
+  auto& registry = GetAOBRegistry();
+  if (!registry.EnsureScanned(moduleBase)) {
+    return false;
+  }
+
+  registry.ApplyTo(player_.aobBases);
+  aobBasesResolved_ = true;
+
+  if (player_.aobBases.WorldChrMan) {
+    Log("[+] AOB bases resolved");
+  }
+
+  return player_.aobBases.WorldChrMan != 0;
+}
+
+void PlayerTrainer::ClearRuntimeAddresses() {
+  const uintptr_t module = addresses_.hModule;
+  addresses_ = RuntimeAddresses{};
+  addresses_.hModule = module;
+  runtimeAddressesValid_ = false;
+}
+
+bool PlayerTrainer::ResolveRuntimeAddresses(HMODULE moduleBase) {
+  if (!player_.aobBases.WorldChrMan) {
+    ClearRuntimeAddresses();
+    return false;
+  }
+
   const uintptr_t module = reinterpret_cast<uintptr_t>(moduleBase);
-  const uintptr_t baseAttributeAddr = module + GameOffsets::kBasePlayerAttribute;
-  const uintptr_t baseWorldChrManAddr = module + GameOffsets::kBaseWorldChrMan;
-  const uintptr_t csChrDataModuleAddr = Memory::ResolvePointerChain(baseWorldChrManAddr, GameOffsets::kCSChrDataModule);
+  const uintptr_t GameDataManAddr = module + GameOffsets::kGameDataMan;
+  const uintptr_t csChrDataModuleAddr = Memory::ResolvePointerChain(player_.aobBases.WorldChrMan, GameOffsets::kCSChrDataModule);
 
   uintptr_t playerInsAddr = 0;
   if (!Memory::Read(csChrDataModuleAddr, &playerInsAddr, sizeof(uintptr_t))) {
-    return;
+    ClearRuntimeAddresses();
+    return false;
   }
 
   if (playerInsAddr == 0 || playerInsAddr == 0xFFFFFFFFFFFFFFFFULL) {
-    return;
+    ClearRuntimeAddresses();
+    return false;
   }
 
   addresses_.hModule = module;
-  addresses_.lvl = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kLvl);
   addresses_.health = Memory::ResolvePointerChain(csChrDataModuleAddr, GameOffsets::kHealth);
   addresses_.maxHealth = Memory::ResolvePointerChain(csChrDataModuleAddr, GameOffsets::kMaxHealth);
   addresses_.mana = Memory::ResolvePointerChain(csChrDataModuleAddr, GameOffsets::kMana);
   addresses_.maxMana = Memory::ResolvePointerChain(csChrDataModuleAddr, GameOffsets::kMaxMana);
   addresses_.stamina = Memory::ResolvePointerChain(csChrDataModuleAddr, GameOffsets::kStamina);
   addresses_.maxStamina = Memory::ResolvePointerChain(csChrDataModuleAddr, GameOffsets::kMaxStamina);
-  addresses_.runes = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kRunes);
-  addresses_.vigor = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kVigor);
-  addresses_.mind = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kMind);
-  addresses_.endurance = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kEndurance);
-  addresses_.strangth = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kStrength);
-  addresses_.dexterity = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kDexterity);
-  addresses_.intelligence = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kIntelligence);
-  addresses_.faith = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kFaith);
-  addresses_.arcane = Memory::ResolvePointerChain(baseAttributeAddr, GameOffsets::kArcane);
+  addresses_.lvl = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kLvl);
+  addresses_.runes = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kRunes);
+  addresses_.vigor = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kVigor);
+  addresses_.mind = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kMind);
+  addresses_.endurance = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kEndurance);
+  addresses_.strangth = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kStrength);
+  addresses_.dexterity = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kDexterity);
+  addresses_.intelligence = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kIntelligence);
+  addresses_.faith = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kFaith);
+  addresses_.arcane = Memory::ResolvePointerChain(GameDataManAddr, GameOffsets::kArcane);
+
+  if (addresses_.lvl == 0) {
+    ClearRuntimeAddresses();
+    return false;
+  }
+
+  runtimeAddressesValid_ = true;
+  return true;
 }
 
 void PlayerTrainer::ReadPlayerState() {
-  player_.lvl = *reinterpret_cast<int*>(addresses_.lvl);
-  player_.health = *reinterpret_cast<int*>(addresses_.health);
-  player_.maxHealth = *reinterpret_cast<int*>(addresses_.maxHealth);
-  player_.mana = *reinterpret_cast<int*>(addresses_.mana);
-  player_.maxMana = *reinterpret_cast<int*>(addresses_.maxMana);
-  player_.stamina = *reinterpret_cast<int*>(addresses_.stamina);
-  player_.maxStamina = *reinterpret_cast<int*>(addresses_.maxStamina);
-  player_.runes = *reinterpret_cast<int*>(addresses_.runes);
+  Memory::ReadInt(addresses_.lvl, &player_.lvl);
+  Memory::ReadInt(addresses_.health, &player_.health);
+  Memory::ReadInt(addresses_.maxHealth, &player_.maxHealth);
+  Memory::ReadInt(addresses_.mana, &player_.mana);
+  Memory::ReadInt(addresses_.maxMana, &player_.maxMana);
+  Memory::ReadInt(addresses_.stamina, &player_.stamina);
+  Memory::ReadInt(addresses_.maxStamina, &player_.maxStamina);
+  Memory::ReadInt(addresses_.runes, &player_.runes);
 
-  player_.attributes.vigor = *reinterpret_cast<int*>(addresses_.vigor);
-  player_.attributes.mind = *reinterpret_cast<int*>(addresses_.mind);
-  player_.attributes.endurance = *reinterpret_cast<int*>(addresses_.endurance);
-  player_.attributes.strangth = *reinterpret_cast<int*>(addresses_.strangth);
-  player_.attributes.dexterity = *reinterpret_cast<int*>(addresses_.dexterity);
-  player_.attributes.intelligence = *reinterpret_cast<int*>(addresses_.intelligence);
-  player_.attributes.faith = *reinterpret_cast<int*>(addresses_.faith);
-  player_.attributes.arcane = *reinterpret_cast<int*>(addresses_.arcane);
+  Memory::ReadInt(addresses_.vigor, &player_.attributes.vigor);
+  Memory::ReadInt(addresses_.mind, &player_.attributes.mind);
+  Memory::ReadInt(addresses_.endurance, &player_.attributes.endurance);
+  Memory::ReadInt(addresses_.strangth, &player_.attributes.strangth);
+  Memory::ReadInt(addresses_.dexterity, &player_.attributes.dexterity);
+  Memory::ReadInt(addresses_.intelligence, &player_.attributes.intelligence);
+  Memory::ReadInt(addresses_.faith, &player_.attributes.faith);
+  Memory::ReadInt(addresses_.arcane, &player_.attributes.arcane);
 }
 
 void PlayerTrainer::MemoryUpdate(HMODULE moduleBase) {
@@ -72,8 +116,11 @@ void PlayerTrainer::MemoryUpdate(HMODULE moduleBase) {
     return;
   }
 
-  ResolveAddresses(moduleBase);
-  if (addresses_.lvl == 0) {
+  if (!EnsureAOBBases(moduleBase)) {
+    return;
+  }
+
+  if (!ResolveRuntimeAddresses(moduleBase)) {
     return;
   }
 
@@ -81,28 +128,38 @@ void PlayerTrainer::MemoryUpdate(HMODULE moduleBase) {
 }
 
 void PlayerTrainer::ChangeAttributeValue(char symbol, uintptr_t attrAddress) {
-  if (!attrAddress) {
+  if (!runtimeAddressesValid_ || !attrAddress || !addresses_.lvl) {
+    return;
+  }
+
+  int value = 0;
+  int lvl = 0;
+  if (!Memory::ReadInt(attrAddress, &value) || !Memory::ReadInt(addresses_.lvl, &lvl)) {
     return;
   }
 
   if (symbol == '+') {
-    *reinterpret_cast<int*>(attrAddress) += 1;
-    *reinterpret_cast<int*>(addresses_.lvl) += 1;
+    Memory::WriteInt(attrAddress, value + 1);
+    Memory::WriteInt(addresses_.lvl, lvl + 1);
   } else if (symbol == '-') {
-    *reinterpret_cast<int*>(attrAddress) -= 1;
-    *reinterpret_cast<int*>(addresses_.lvl) -= 1;
+    Memory::WriteInt(attrAddress, value - 1);
+    Memory::WriteInt(addresses_.lvl, lvl - 1);
   }
 }
 
 void PlayerTrainer::PlayerUpdate() {
+  if (!runtimeAddressesValid_) {
+    return;
+  }
+
   if (player_.infHealth) {
-    *reinterpret_cast<int*>(addresses_.health) = player_.maxHealth;
+    Memory::WriteInt(addresses_.health, player_.maxHealth);
   }
   if (player_.infMana) {
-    *reinterpret_cast<int*>(addresses_.mana) = player_.maxMana;
+    Memory::WriteInt(addresses_.mana, player_.maxMana);
   }
   if (player_.infStamina) {
-    *reinterpret_cast<int*>(addresses_.stamina) = player_.maxStamina;
+    Memory::WriteInt(addresses_.stamina, player_.maxStamina);
   }
 }
 
@@ -113,11 +170,14 @@ void PlayerTrainer::RenderModesTab() {
     player_.infStamina = player_.godMode;
   }
 
-  if (ImGui::Checkbox("Infinity Health", &player_.infHealth));
-  
-  if (ImGui::Checkbox("Infinity Mana", &player_.infMana));
+  if (ImGui::Checkbox("Infinity Health", &player_.infHealth)) {
+  }
 
-  if (ImGui::Checkbox("Infinity Stamina", &player_.infStamina));
+  if (ImGui::Checkbox("Infinity Mana", &player_.infMana)) {
+  }
+
+  if (ImGui::Checkbox("Infinity Stamina", &player_.infStamina)) {
+  }
 }
 
 void PlayerTrainer::RenderPlayerTab() {
@@ -132,13 +192,19 @@ void PlayerTrainer::RenderPlayerTab() {
   ImGui::InputInt("Add Runes", &runesToAdd_);
 
   if (ImGui::Button("Add")) {
-    *reinterpret_cast<int*>(addresses_.runes) += runesToAdd_;
+    int runes = 0;
+    if (Memory::ReadInt(addresses_.runes, &runes)) {
+      Memory::WriteInt(addresses_.runes, runes + runesToAdd_);
+    }
   }
 
   ImGui::SameLine();
 
   if (ImGui::Button("Remove")) {
-    *reinterpret_cast<int*>(addresses_.runes) -= runesToAdd_;
+    int runes = 0;
+    if (Memory::ReadInt(addresses_.runes, &runes)) {
+      Memory::WriteInt(addresses_.runes, runes - runesToAdd_);
+    }
   }
 
   ImGui::Separator();

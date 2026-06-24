@@ -56,6 +56,7 @@ DWORD WINAPI MainThread(LPVOID lpParameter) {
       PlayerTrainer::Instance().MemoryUpdate(moduleBase);
       PlayerTrainer::Instance().PlayerUpdate();
     }
+    Log("Updates working");
     Sleep(100);
   }
 

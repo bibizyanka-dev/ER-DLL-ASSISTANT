@@ -14,6 +14,7 @@ struct AOBEntry {
 
 struct GameAOBAddresses {
   uintptr_t WorldChrMan = 0;
+  uintptr_t PlayerGameData = 0;
   uintptr_t GameDataMan = 0;
 };
 

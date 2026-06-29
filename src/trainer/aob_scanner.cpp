@@ -9,7 +9,7 @@
 
 std::vector<AOBEntry> aobList = {
     {"WorldChrMan", "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 0F 48 39 88", 3, 7},
-    {"GameDataMan", "48 8B 05 ?? ?? ?? ?? 48 85 C0 74 05 48 8B 40 58 C3 C3", 3, 7},
+    {"PlayerGameData", "48 8B 48 08 48 85 C9 0F 84 ?? ?? ?? ?? 48 8B 01", 15, 0}
 };
 
 namespace {
@@ -155,7 +155,7 @@ struct AOBFieldBinding {
 
 constexpr AOBFieldBinding kAOBFieldBindings[] = {
     {"WorldChrMan", offsetof(GameAOBAddresses, WorldChrMan)},
-    {"GameDataMan", offsetof(GameAOBAddresses, GameDataMan)},
+    {"PlayerGameData", offsetof(GameAOBAddresses, PlayerGameData)},
 };
 
 }  // namespace
@@ -171,7 +171,7 @@ bool AOBRegistry::EnsureScanned(HMODULE module) {
   }
 
   cache_ = ScanAllAOBs(module);
-  scanned_ = true;
+  scanned_ = false;
   return !cache_.empty();
 }
 
